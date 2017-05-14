@@ -104,11 +104,13 @@ public class Neuron {
 		/*double pij = (double) (1.0 / (1.0 + Math.exp(-(prev_output-output))));
 		prev_delta = (targetValue-pij) * tfunc.computeDerivative(prev_output);
 		delta =      (targetValue-pij) * tfunc.computeDerivative(output);*/
+        //pairMap 记录的是每个url和排在该url后面的所有url的编号
 		int[][] pairMap = param.pairMap;
 		int current = param.current;
 		
 		delta_i = 0.0;
 		deltas_j = new double[pairMap[current].length];
+        //每个与文档current相关的文档
 		for(int k=0;k<pairMap[current].length;k++)
 		{
 			int j = pairMap[current][k];
@@ -118,11 +120,14 @@ public class Neuron {
 			{
 				weight = 1;
 				pij = (double) (1.0 / (1.0 + Math.exp(outputs.get(current)-outputs.get(j))));//this is in fact not "pij", but "targetValue-pij":  1 - 1/(1+e^{-o_ij})
+                //这里的pij其实是论文里面的 1-pij
+                //公式6
 			}
 			else//LambdaRank
 			{
 				weight = param.pairWeight[current][k];
 				pij = (double) ( param.targetValue[current][k]  -  1.0 / (1.0 + Math.exp(-(outputs.get(current)-outputs.get(j)))));
+                //这里的pij其实是论文里面的 y-pij, 公式3
 			}
 			double lambda = weight * pij;
 			delta_i += lambda;

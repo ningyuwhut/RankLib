@@ -133,7 +133,7 @@ public class LambdaMART extends Ranker {
 		}
 		int current = 0;
 		martSamples = new DataPoint[dpCount];
-		modelScores = new float[dpCount];
+		modelScores = new float[dpCount];//每个训练样本的预测值
 		pseudoResponses = new float[dpCount];
 		for(int i=0;i<samples.size();i++)
 		{
@@ -168,6 +168,8 @@ public class LambdaMART extends Ranker {
 			List<Float> values = new ArrayList<Float>();
 			float fmax = Float.NEGATIVE_INFINITY;
 			float fmin = Float.MAX_VALUE;
+            //外层循环虽然看起来像是遍历martSamples中的每一个样本，其实是按照sortedIdx中的顺序进行遍历
+            //
 			for(int i=0;i<martSamples.length;i++)
 			{
 				int k = sortedIdx[f][i];//get samples sorted with respect to this feature
@@ -243,6 +245,7 @@ public class LambdaMART extends Ranker {
 			//Create training instances for MART:
 			//  - Each document is a training sample
 			//	- The lambda for this document serves as its training label
+            //lambda 就是梯度，梯度就是样本的label，就是进行划分时的依据之一
 			computePseudoResponses();
 			
 			//update the histogram with these training labels (the feature histogram will be used to find the best tree split)
@@ -256,6 +259,7 @@ public class LambdaMART extends Ranker {
 			ensemble.add(rt, learningRate);
 			
 			//update the outputs of the tree (with gamma computed using the Newton-Raphson method) 
+            //计算叶子节点的值
 			updateTreeOutput(rt);
 			
 			rt.clearSamples();//clear references to data that is longer used
@@ -419,13 +423,17 @@ public class LambdaMART extends Ranker {
 		//wait for all workers to complete before we move on to the next stage
 		p.await();
 	}
+    //计算lambda
+    //start，end都是query的下标,current是文档的相对位移
 	protected void computePseudoResponses(int start, int end, int current)
 	{
+    
 		//compute the lambda for each document (aka "pseudo response")
+        //每个样本(一个样本就是一个查询，一个查询下还有一个文档序列)，首先计算
 		for(int i=start;i<=end;i++)
 		{
 			RankList r = samples.get(i);				
-			float[][] changes = computeMetricChange(i, current);			
+			float[][] changes = computeMetricChange(i, current);//交换查询i下的文档带来的指标的变化
 			double[] lambdas = new double[r.size()];
 			double[] weights = new double[r.size()];
 			Arrays.fill(lambdas, 0);
@@ -440,7 +448,7 @@ public class LambdaMART extends Ranker {
 						continue;
 					
 					DataPoint p2 = r.get(k);
-					double deltaNDCG = Math.abs(changes[j][k]);
+					double deltaNDCG = Math.abs(changes[j][k]);//交换j,k两个文档之后的ndcg的变化
 					
 					if(p1.getLabel() > p2.getLabel())
 					{
@@ -449,7 +457,7 @@ public class LambdaMART extends Ranker {
 						lambdas[j] += lambda;
 						lambdas[k] -= lambda;
 						double delta = rho * (1.0 - rho) * deltaNDCG;
-						weights[j] += delta;
+						weights[j] += delta; //这个是二阶导
 						weights[k] += delta;
 					}
 				}
@@ -465,7 +473,7 @@ public class LambdaMART extends Ranker {
 	}
 	protected void updateTreeOutput(RegressionTree rt)
 	{
-		List<Split> leaves = rt.leaves();
+		List<Split> leaves = rt.leaves();//所有叶子节点
 		for(int i=0;i<leaves.size();i++)
 		{
 			float s1 = 0.0F;
@@ -475,8 +483,8 @@ public class LambdaMART extends Ranker {
 			for(int j=0;j<idx.length;j++)
 			{
 				int k = idx[j];
-				s1 += pseudoResponses[k];
-				s2 += martSamples[k].getCached();
+				s1 += pseudoResponses[k];//lambda
+				s2 += martSamples[k].getCached();//二阶导
 			}
 			s.setOutput(s1/s2);
 		}

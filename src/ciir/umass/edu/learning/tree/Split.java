@@ -23,7 +23,7 @@ public class Split {
 	//Key attributes of a split (tree node)
 	private int featureID = -1;
 	private float threshold = 0F;
-	private float avgLabel = 0.0F;
+	private float avgLabel = 0.0F;//输出值即叶子节点的均值
 	
 	//Intermediate variables (ONLY used during learning)
 	//*DO NOT* attempt to access them once the training is done
@@ -100,6 +100,7 @@ public class Split {
 		return avgLabel;
 	}
 	
+    //返回以该split为根节点的子树的所有叶子节点
 	public List<Split> leaves()
 	{
 		List<Split> list = new ArrayList<Split>();
@@ -117,6 +118,9 @@ public class Split {
 		}
 	}
 	
+    //计算dp的输出值，即落到哪个叶子节点
+    //featureID=-1表示是叶子节点
+    //特征小于阈值则进入左侧叶子节点,否则进入右侧节点
 	public float eval(DataPoint dp)
 	{
 		if(featureID == -1)

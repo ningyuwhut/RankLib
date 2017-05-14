@@ -18,6 +18,8 @@ public class LambdaRank extends RankNet {
 	//Parameters
 	//Inherits *ALL* parameters from RankNet
 	
+    //targetValue 记录和文档 的label不同的文档构成的文档对的label
+    //如果i的label大于j的label，那么targetValue的值为1，否则为0
 	//Variables
 	protected float[][] targetValue = null; 
 	
@@ -38,6 +40,7 @@ public class LambdaRank extends RankNet {
 			addInput(rl.get(i));
 			propagate(i);
 			
+            //和i label不同的样本个数
 			int count = 0;
 			for(int j=0;j<rl.size();j++)
 				if(rl.get(i).getLabel() > rl.get(j).getLabel() || rl.get(i).getLabel() < rl.get(j).getLabel())
@@ -80,6 +83,7 @@ public class LambdaRank extends RankNet {
 	{
 		return rank(rl);
 	}
+    //计算交换两个文档后的指标的变化
 	protected float[][] computePairWeight(int[][] pairMap, RankList rl)
 	{
 		double[][] changes = scorer.swapChange(rl);

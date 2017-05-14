@@ -136,11 +136,14 @@ public class RankNet extends Ranker {
 	protected int[][] batchFeedForward(RankList rl)
 	{
 		int[][] pairMap = new int[rl.size()][];
+        //每个文档
 		for(int i=0;i<rl.size();i++)
 		{
 			addInput(rl.get(i));
 			propagate(i);
 			
+            //count 记录label小于文档i的文档个数
+            //即pairMap对中的样本的label是不同的,都是1
 			int count = 0;
 			for(int j=0;j<rl.size();j++)
 				if(rl.get(i).getLabel() > rl.get(j).getLabel())
@@ -165,6 +168,7 @@ public class RankNet extends Ranker {
 		}
 		return pairMap;
 	}
+    //在RankNet中pairWeight没有用到
 	protected void batchBackPropagate(int[][] pairMap, float[][] pairWeight)
 	{
 		for(int i=0;i<pairMap.length;i++)
@@ -232,6 +236,7 @@ public class RankNet extends Ranker {
 			System.out.println("Error in NeuralNetwork.restoreBestModelOnValidation(): " + ex.toString());
 		}
 	}
+    //这里计算的应该是似然函数
 	protected double crossEntropy(double o1, double o2, double targetValue)
 	{
 		double oij = o1 - o2;
@@ -280,9 +285,12 @@ public class RankNet extends Ranker {
 			addHiddenLayer(nHiddenNodePerLayer);
 		wire();
 		
+        //pair 的个数
+        //每个pair(i,j)都是i的排名比j高
 		totalPairs = 0;
 		for(int i=0;i<samples.size();i++)
 		{
+        //按得分从高到低排序
 			RankList rl = samples.get(i).getCorrectRanking();
 			for(int j=0;j<rl.size()-1;j++)
 				for(int k=j+1;k<rl.size();k++)
@@ -308,9 +316,12 @@ public class RankNet extends Ranker {
 		
 		for(int i=1;i<=nIteration;i++)
 		{
+        //一个sample是一个查询下的所有文档对
 			for(int j=0;j<samples.size();j++)
 			{
 				RankList rl = internalReorder(samples.get(j));
+                //对每个pair前向传播
+                //pairMap记录当前查询下每个文档比它排名靠后的文档对
 				int[][] pairMap = batchFeedForward(rl);
 				float[][] pairWeight = computePairWeight(pairMap, rl);
 				batchBackPropagate(pairMap, pairWeight);
@@ -318,6 +329,7 @@ public class RankNet extends Ranker {
 			}
 			
 			//printWeightVector();
+            //rank是把每个查询下的文档按神经网络的得分进行从高到低排序
 			scoreOnTrainingData = scorer.score(rank(samples));
 			estimateLoss();
 			PRINT(new int[]{7, 14}, new String[]{i+"", SimpleMath.round(((double)misorderedPairs)/totalPairs, 4)+""});
@@ -355,6 +367,8 @@ public class RankNet extends Ranker {
 		}
 		PRINTLN("---------------------------------");
 	}
+    //计算节点p最后的输出值
+    //相当于预测一个文档的得分
 	public double eval(DataPoint p)
 	{
 		//feed input

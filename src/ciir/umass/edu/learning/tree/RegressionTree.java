@@ -37,7 +37,7 @@ public class RegressionTree {
 	public RegressionTree(Split root)
 	{
 		this.root = root;
-		leaves = root.leaves();
+		leaves = root.leaves();//获取所有叶子节点
 	}
 	public RegressionTree(int nLeaves, DataPoint[] trainingSamples, float[] labels, FeatureHistogram hist, int minLeafSupport)
 	{

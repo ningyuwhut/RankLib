@@ -125,6 +125,7 @@ public class NDCGScorer extends MetricScorer {
 		}
 		return dcg;
 	}
+    //计算排序后的样本队列的dcg,该dcg也是这些样本所能达到的最大dcg
 	private double getIdealDCG(List<Integer> rel, int k)
 	{
 		int size = k;
@@ -139,6 +140,7 @@ public class NDCGScorer extends MetricScorer {
 		}
 		return dcg;
 	}
+    //交换rl中的任意两个文档带来的ndcg的变化量
 	public double[][] swapChange(RankList rl)
 	{
 		int size = (rl.size() > k) ? k : rl.size();

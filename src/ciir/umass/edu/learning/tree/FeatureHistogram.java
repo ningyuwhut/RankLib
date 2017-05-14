@@ -29,7 +29,7 @@ public class FeatureHistogram {
 	public double[][] sum = null;
 	public double[][] sqSum = null;
 	public int[][] count = null;
-	public int[][] sampleToThresholdMap = null;
+	public int[][] sampleToThresholdMap = null; //每个特征下每个样本所属的阈值
 	
 	public FeatureHistogram()
 	{
@@ -42,7 +42,7 @@ public class FeatureHistogram {
 		
 		sum = new double[features.length][];
 		sqSum = new double[features.length][];
-		count = new int[features.length][];
+		count = new int[features.length][];//记录每个特征的每个阈值的左右子节点的样本数，作为划分时的一个指标
 		sampleToThresholdMap = new int[features.length][];
 		for(int i=0;i<features.length;i++)
 		{			
@@ -53,17 +53,18 @@ public class FeatureHistogram {
 			double sumLeft = 0;
 			double sqSumLeft = 0;
 			float[] threshold = thresholds[i];
-			double[] sumLabel = new double[threshold.length];
-			double[] sqSumLabel = new double[threshold.length];
-			int[] c = new int[threshold.length];
-			int[] stMap = new int[samples.length];
+			double[] sumLabel = new double[threshold.length];//记录每个阈值下分到左侧的样本的label和
+			double[] sqSumLabel = new double[threshold.length];//记录每个阈值下分到左侧的样本的label平方和
+			int[] c = new int[threshold.length];//每个阈值对应的左侧的样本数
+			int[] stMap = new int[samples.length]; //在当前特征下每个样本对应的阈值
 			
 			int last = -1;
+            //遍历当前特征的每个分割阈值
 			for(int t=0;t<threshold.length;t++)
 			{
 				int j=last+1;
 				//find the first sample that exceeds the current threshold
-				for(;j<idx.length;j++)
+				for(;j<idx.length;j++)//按当前特征排序（由小到大）的每个样本
 				{
 					int k = idx[j];
 					if(samples[k].getFeatureValue(fid) >  threshold[t])
@@ -85,6 +86,7 @@ public class FeatureHistogram {
 	}
 	public void update(float[] labels)
 	{
+    //更新前先置零
 		for(int f=0;f<features.length;f++)
 		{
 			Arrays.fill(sum[f], 0);
@@ -199,6 +201,7 @@ public class FeatureHistogram {
 		double bestVarRight = -1;
 		double minS = Double.MAX_VALUE;
 		
+        //首先进行特征采样
 		int[] usedFeatures = null;//index of the features to be used for tree splitting
 		if(samplingRate < 1)//need to do sub sampling (feature sampling)
 		{
@@ -226,8 +229,8 @@ public class FeatureHistogram {
 		
 		for(int f=0;f<usedFeatures.length;f++)
 		{
-			int i = usedFeatures[f];
-			float[] threshold = thresholds[i];
+			int i = usedFeatures[f];//特征下标
+			float[] threshold = thresholds[i];//该特征对应的所有阈值
 			
 			double[] sumLabel = sum[i];
 			double[] sqSumLabel = sqSum[i];
@@ -250,6 +253,7 @@ public class FeatureHistogram {
 				double sumRight = s - sumLeft;
 				double sqSumRight = sq - sqSumLeft;
 				
+                //这是什么切分准则？？
 				double varLeft = sqSumLeft - sumLeft * sumLeft / countLeft;
 				double varRight = sqSumRight - sumRight * sumRight / countRight;
 				double S = varLeft + varRight;
@@ -287,11 +291,11 @@ public class FeatureHistogram {
 		//if(countLeft == 0 || countRight == 0)
 			//return null;
 		
-		int[] left = new int[countLeft];
+		int[] left = new int[countLeft];//左孩子的样本
 		int[] right = new int[countRight];
 		int l = 0;
 		int r = 0;
-		int[] idx = sp.getSamples();
+		int[] idx = sp.getSamples();//该节点下的所有样本
 		for(int j=0;j<idx.length;j++)
 		{
 			int k = idx[j];
@@ -313,5 +317,5 @@ public class FeatureHistogram {
 		sp.clearSamples();
 		
 		return sp;
-	}	
+	}
 }
